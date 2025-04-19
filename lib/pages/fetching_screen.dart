@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chatbot/pages/chat_screen.dart';
 import 'package:flutter_chatbot/pages/menu/drawer_wrapper.dart';
 import 'package:flutter_chatbot/theme/colors.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';

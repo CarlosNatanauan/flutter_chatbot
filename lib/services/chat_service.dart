@@ -15,35 +15,38 @@ static String _generateTitle(String text) {
   final cleaned = text.replaceAll(RegExp(r'\s+'), ' ').trim(); // compress all whitespace/newlines
   return cleaned.length <= 30 ? cleaned : '${cleaned.substring(0, 30)}...';
 }
+static String? getCurrentConversationId() {
+  return _activeConversationId;
+}
 
 
   /// Create a new conversation if one hasn't been started
-  static Future<void> _initConversationIfNeeded(String firstUserMessage) async {
-    if (_activeConversationId != null) return;
+static Future<void> _initConversationIfNeeded(String firstUserMessage) async {
+  if (_activeConversationId != null) return;
 
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) {
-      print('🚫 Cannot initialize conversation: user not signed in.');
-      return;
-    }
-
-    try {
-      final newDoc = await _firestore
-          .collection('users')
-          .doc(uid)
-          .collection('conversations')
-          .add({
-        'title': _generateTitle(firstUserMessage),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      _activeConversationId = newDoc.id;
-
-      print('📝 New conversation created: $_activeConversationId');
-    } catch (e) {
-      print('❌ Failed to create conversation: $e');
-    }
+  final uid = _auth.currentUser?.uid;
+  if (uid == null) {
+    print('🚫 Cannot initialize conversation: user not signed in.');
+    return;
   }
+
+  try {
+    final newDoc = await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('conversations')
+        .add({
+      'title': _generateTitle(firstUserMessage),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    _activeConversationId = newDoc.id;
+    print('📝 New conversation created: $_activeConversationId');
+  } catch (e) {
+    print('❌ Failed to create conversation: $e');
+  }
+}
+
 
   /// Save a message to Firestore under the active conversation
   static Future<void> saveMessage(String sender, String text) async {

@@ -20,9 +20,10 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  
+
   final ScrollController _scrollController = ScrollController();
   bool _isWaitingForResponse = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -32,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
     print('🔁 initState - current convoId: $convoId');
 
     if (convoId != null) {
-      ChatService.setConversationId(convoId); // ensures stream updates
+      ChatService.setConversationId(convoId); 
     }
   }
 
@@ -75,6 +76,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Save user message to Firestore first
     await ChatService.saveMessage("user", input);
+
+    // 🧠 Force-select the convo if it was just created
+    if (isFirstMessage) {
+      final newId = ChatService.getCurrentConversationId();
+      if (newId != null) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        ChatService.setConversationId(newId);
+      }
+    }
 
     // Now we're waiting for AI response
     setState(() {
@@ -240,16 +250,15 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-Padding(
-  padding: const EdgeInsets.all(12.0),
-  child: ExpandableInputField(
-  controller: _controller, // ✅ pass it down
-  onSend: (msg) {
-    _sendPrompt(); // no need to reassign _controller.text anymore
-  },
-),
-
-),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: ExpandableInputField(
+              controller: _controller,
+              onSend: (msg) {
+                _sendPrompt();
+              },
+            ),
+          ),
         ],
       ),
     );

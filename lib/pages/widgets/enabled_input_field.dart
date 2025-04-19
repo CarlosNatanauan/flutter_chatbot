@@ -29,7 +29,7 @@ class _ExpandableInputFieldState extends State<ExpandableInputField> {
   void _handleTextChange() {
     final lines = '\n'.allMatches(widget.controller.text).length + 1;
     setState(() {
-      _showExpand = lines >= 3; // 👈 show expand button earlier
+      _showExpand = lines >= 3; 
     });
   }
 

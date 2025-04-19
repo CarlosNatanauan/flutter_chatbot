@@ -104,7 +104,7 @@ class SettingsScreen extends StatelessWidget {
           // Profile Section
           InkWell(
             onTap: () {
-              // Open profile editing if needed
+              
             },
             borderRadius: BorderRadius.circular(12),
             child: Padding(

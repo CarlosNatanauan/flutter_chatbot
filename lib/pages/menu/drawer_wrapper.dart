@@ -19,7 +19,7 @@ class DrawerWrapper extends StatelessWidget {
   valueListenable: ChatService.activeConversationNotifier,
 
   builder: (context, conversationId, _) {
-    return ChatScreen(key: ValueKey(conversationId)); // force rebuild
+    return ChatScreen(key: ValueKey(conversationId)); 
   },
 ),
 
@@ -29,10 +29,8 @@ class DrawerWrapper extends StatelessWidget {
   slideWidth: MediaQuery.of(context).size.width * 0.85,
   style: DrawerStyle.defaultStyle,
 
-  // ✅ This is the correct one!
   drawerShadowsBackgroundColor: AppColors.lightAquaText,
 
-  // Optional: make the menu area match too
   menuBackgroundColor: AppColors.lightNavy,
   mainScreenTapClose: true,
 );

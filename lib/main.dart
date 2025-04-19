@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'USAP',
       theme: ThemeData.dark(),
       debugShowCheckedModeBanner: false,
-      home: const AuthGate(), 
+      home: const AuthGate(),
     );
   }
 }

@@ -17,7 +17,8 @@ class MenuScreen extends StatelessWidget {
       color: AppColors.darkNavy,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(left: 14, right: 14, top: 16, bottom: 16),
+          padding:
+              const EdgeInsets.only(left: 14, right: 14, top: 16, bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -106,16 +107,19 @@ class MenuScreen extends StatelessWidget {
                                 contentPadding:
                                     const EdgeInsets.symmetric(horizontal: 12),
                                 title: Text(
-  title,
-  maxLines: 1,
-  overflow: TextOverflow.ellipsis,
-  style: TextStyle(
-    fontSize: 15,
-    color: isSelected ? AppColors.goldSun : Colors.white,
-    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-  ),
-),
-
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: isSelected
+                                        ? AppColors.goldSun
+                                        : Colors.white,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                ),
                                 onTap: () {
                                   ChatService.setConversationId(id);
                                   ZoomDrawer.of(context)?.close();
@@ -130,10 +134,10 @@ class MenuScreen extends StatelessWidget {
                 ),
               ),
 
-              // 👇 Enhanced bottom profile section
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                 decoration: BoxDecoration(
                   color: AppColors.darkNavy.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(12),
@@ -185,7 +189,8 @@ class MenuScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Icon(Icons.keyboard_arrow_right, color: Colors.white),
+                      const Icon(Icons.keyboard_arrow_right,
+                          color: Colors.white),
                     ],
                   ),
                 ),
