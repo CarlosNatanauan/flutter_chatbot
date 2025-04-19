@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_chatbot/pages/menu/settings_screen.dart';
-import 'package:flutter_chatbot/services/chat_service.dart'; // 👈 for setting active conversation
+import 'package:flutter_chatbot/services/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import '../../theme/colors.dart';
@@ -17,7 +17,7 @@ class MenuScreen extends StatelessWidget {
       color: AppColors.darkNavy,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.only(left: 14, right: 14, top: 16, bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -106,17 +106,16 @@ class MenuScreen extends StatelessWidget {
                                 contentPadding:
                                     const EdgeInsets.symmetric(horizontal: 12),
                                 title: Text(
-                                  title,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: isSelected
-                                        ? AppColors.goldSun
-                                        : Colors.white,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
-                                ),
+  title,
+  maxLines: 1,
+  overflow: TextOverflow.ellipsis,
+  style: TextStyle(
+    fontSize: 15,
+    color: isSelected ? AppColors.goldSun : Colors.white,
+    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+  ),
+),
+
                                 onTap: () {
                                   ChatService.setConversationId(id);
                                   ZoomDrawer.of(context)?.close();
@@ -131,42 +130,64 @@ class MenuScreen extends StatelessWidget {
                 ),
               ),
 
-              // 👇 Fixed bottom profile section
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  );
-                },
-                child: Row(
-                  children: [
-                    if (user?.photoURL != null)
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundImage: NetworkImage(user!.photoURL!),
-                      )
-                    else
-                      const CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.grey,
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        user?.displayName ?? "Anonymous",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+              // 👇 Enhanced bottom profile section
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.darkNavy.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24, width: 0.5),
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      if (user?.photoURL != null)
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundImage: NetworkImage(user!.photoURL!),
+                        )
+                      else
+                        const CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.person, color: Colors.white),
                         ),
-                        overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user?.displayName ?? "Anonymous",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (user?.email != null)
+                              Text(
+                                user!.email!,
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.keyboard_arrow_right, color: Colors.white),
-                  ],
+                      const Icon(Icons.keyboard_arrow_right, color: Colors.white),
+                    ],
+                  ),
                 ),
               ),
             ],

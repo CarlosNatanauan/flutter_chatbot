@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_chatbot/pages/widgets/enabled_input_field.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../services/gemini_service.dart';
 import '../theme/colors.dart';
 import '../services/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:markdown/markdown.dart' as markdown;
+import 'package:url_launcher/url_launcher.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -16,25 +20,40 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  bool _isLoading = false;
-  String _typingText = '';
+  
+  final ScrollController _scrollController = ScrollController();
+  bool _isWaitingForResponse = false;
 
-@override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  final convoId = ChatService.activeConversationNotifier.value;
-  print('🔁 initState - current convoId: $convoId');
+    final convoId = ChatService.activeConversationNotifier.value;
+    print('🔁 initState - current convoId: $convoId');
 
-  if (convoId != null) {
-    ChatService.setConversationId(convoId); // ensures stream updates
+    if (convoId != null) {
+      ChatService.setConversationId(convoId); // ensures stream updates
+    }
   }
-}
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // Scroll to the bottom of the chat
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    }
   }
 
   Future<void> _sendPrompt() async {
@@ -42,6 +61,7 @@ void initState() {
     if (input.isEmpty) return;
 
     final isFirstMessage = ChatService.activeConversationNotifier.value == null;
+    final conversationId = ChatService.activeConversationNotifier.value;
 
     if (isFirstMessage) {
       final words = input.split(' ');
@@ -50,29 +70,34 @@ void initState() {
       print('📝 Generated conversation title: $generatedTitle');
     }
 
-    setState(() {
-      _isLoading = true;
-      _controller.clear();
-      _typingText = '';
-    });
+    // Clear the input field immediately
+    _controller.clear();
 
+    // Save user message to Firestore first
     await ChatService.saveMessage("user", input);
-    final response = await GeminiService.getResponse(input);
 
-    // Typing effect
-    for (int i = 0; i < response.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 0));
-      setState(() {
-        _typingText = response.substring(0, i + 1);
-      });
-    }
-
+    // Now we're waiting for AI response
     setState(() {
-      _isLoading = false;
+      _isWaitingForResponse = true;
     });
 
+    // Scroll to show the latest message
+    _scrollToBottom();
+
+    // Get response from Gemini
+    final response =
+        await GeminiService.getResponse(input, conversationId ?? 'temp-id');
+
+    // Save AI response to Firestore
     await ChatService.saveMessage("gemini", response);
-    _typingText = '';
+
+    // No longer waiting for response
+    setState(() {
+      _isWaitingForResponse = false;
+    });
+
+    // Scroll to show the AI response
+    _scrollToBottom();
   }
 
   Widget _buildMessage(String sender, String text) {
@@ -103,6 +128,41 @@ void initState() {
     );
   }
 
+  Widget _buildTypingIndicator() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.gray.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: LoadingAnimationWidget.waveDots(
+          color: AppColors.darkNavy,
+          size: 40,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDot(int index) {
+    return SizedBox(
+      width: 8,
+      height: 8,
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        decoration: BoxDecoration(
+          color: _isWaitingForResponse
+              ? AppColors.darkNavy
+              : AppColors.gray.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+        margin: EdgeInsets.symmetric(horizontal: 4),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,101 +183,73 @@ void initState() {
       ),
       body: Column(
         children: [
-Expanded(
-  child: ValueListenableBuilder<String?>(
-    valueListenable: ChatService.activeConversationNotifier,
-    builder: (context, convoId, _) {
+          Expanded(
+            child: ValueListenableBuilder<String?>(
+              valueListenable: ChatService.activeConversationNotifier,
+              builder: (context, convoId, _) {
+                return StreamBuilder<QuerySnapshot>(
+                  stream: ChatService.getMessageStream(),
+                  builder: (context, snapshot) {
+                    debugPrint("📡 StreamBuilder rebuild triggered");
 
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-      return StreamBuilder<QuerySnapshot>(
-        stream: ChatService.getMessageStream(),
-        builder: (context, snapshot) {
-          debugPrint("📡 StreamBuilder rebuild triggered");
+                    final docs = snapshot.data?.docs ?? [];
+                    debugPrint("📄 Loaded ${docs.length} messages");
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+                    if (docs.isEmpty && !_isWaitingForResponse) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            SizedBox(height: 16),
+                            Text(
+                              'Anong kailangan mo par?',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-          final docs = snapshot.data?.docs ?? [];
-          debugPrint("📄 Loaded ${docs.length} messages");
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      reverse: true,
+                      itemCount: docs.length + (_isWaitingForResponse ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (_isWaitingForResponse && index == 0) {
+                          return _buildTypingIndicator();
+                        }
 
-if (docs.isEmpty && _typingText.isEmpty) {
-  return Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        SizedBox(height: 16),
-        Text(
-          'Anong kailangan mo par?',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 19,
-            fontWeight: FontWeight.w500,
+                        final actualIndex =
+                            _isWaitingForResponse ? index - 1 : index;
+                        final doc = docs[actualIndex];
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _buildMessage(data['sender'], data['text']);
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            reverse: true,
-            itemCount: docs.length + (_typingText.isNotEmpty ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (_typingText.isNotEmpty && index == 0) {
-                return _buildMessage("gemini", _typingText);
-              }
-
-              final doc = docs[_typingText.isNotEmpty ? index - 1 : index];
-              final data = doc.data() as Map<String, dynamic>;
-              return _buildMessage(data['sender'], data['text']);
-            },
-          );
-        },
-      );
-    },
-  ),
+Padding(
+  padding: const EdgeInsets.all(12.0),
+  child: ExpandableInputField(
+  controller: _controller, // ✅ pass it down
+  onSend: (msg) {
+    _sendPrompt(); // no need to reassign _controller.text anymore
+  },
 ),
 
-
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: CircularProgressIndicator(color: AppColors.goldSun),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Type your message...',
-                      hintStyle: TextStyle(color: AppColors.lightAquaText),
-                      filled: true,
-                      fillColor: AppColors.deepPurple.withOpacity(0.3),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    onSubmitted: (_) => _sendPrompt(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _sendPrompt,
-                  icon: const Icon(Icons.send, color: AppColors.goldSun),
-                ),
-              ],
-            ),
-          ),
+),
         ],
       ),
     );
