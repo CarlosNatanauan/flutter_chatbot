@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chatbot/services/gemini_service.dart';
 
 class ChatService {
   static final _firestore = FirebaseFirestore.instance;
@@ -10,10 +11,11 @@ static final ValueNotifier<String?> activeConversationNotifier = ValueNotifier(n
   static String? _activeConversationId;
 
   /// Generate a title for the conversation from the first user message
-  static String _generateTitle(String text) {
-    final trimmed = text.trim();
-    return trimmed.length <= 30 ? trimmed : '${trimmed.substring(0, 30)}...';
-  }
+static String _generateTitle(String text) {
+  final cleaned = text.replaceAll(RegExp(r'\s+'), ' ').trim(); // compress all whitespace/newlines
+  return cleaned.length <= 30 ? cleaned : '${cleaned.substring(0, 30)}...';
+}
+
 
   /// Create a new conversation if one hasn't been started
   static Future<void> _initConversationIfNeeded(String firstUserMessage) async {
@@ -83,7 +85,8 @@ static final ValueNotifier<String?> activeConversationNotifier = ValueNotifier(n
 static void resetConversation() {
   print('🔄 Resetting active conversation.');
   _activeConversationId = null;
-  activeConversationNotifier.value = null; // 👈 notify UI
+  activeConversationNotifier.value = null; // notify UI
+  GeminiService.resetConversation(); // reset Gemini's conversation history
 }
 
 
@@ -113,8 +116,34 @@ static Stream<QuerySnapshot> getMessageStream() {
 }
 
 
-  static void setConversationId(String id) {
-    _activeConversationId = id;
-    activeConversationNotifier.value = id; // 👈 Notify listeners
+static void setConversationId(String id) async {
+  _activeConversationId = id;
+  activeConversationNotifier.value = id; // Notify listeners
+  
+  // Load messages for this conversation
+  final uid = _auth.currentUser?.uid;
+  if (uid != null) {
+    try {
+      final messagesSnapshot = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('conversations')
+          .doc(id)
+          .collection('messages')
+          .orderBy('timestamp')
+          .get();
+      
+      final messages = messagesSnapshot.docs
+          .map((doc) => doc.data())
+          .toList();
+      
+      // Load the conversation history into GeminiService
+      await GeminiService.loadConversationHistory(id, messages);
+      
+      print('✅ Loaded conversation history for: $id');
+    } catch (e) {
+      print('❌ Failed to load conversation history: $e');
+    }
   }
+}
 }
