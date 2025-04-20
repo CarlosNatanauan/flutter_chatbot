@@ -40,7 +40,7 @@ class MenuScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
                       Text(
-                        "Start new Chat",
+                        "Mag-chat ulit tayo!",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -55,7 +55,7 @@ class MenuScreen extends StatelessWidget {
               ),
 
               const Text(
-                "Conversations",
+                "Mga Convo Mo",
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
@@ -80,7 +80,7 @@ class MenuScreen extends StatelessWidget {
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return const Text(
-                        'No conversations yet',
+                        'Tahimik pa sa ngayon 👀',
                         style: TextStyle(color: Colors.white54),
                       );
                     }

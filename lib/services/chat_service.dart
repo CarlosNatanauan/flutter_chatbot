@@ -21,13 +21,13 @@ static String? getCurrentConversationId() {
 
 
   /// Create a new conversation if one hasn't been started
-static Future<void> _initConversationIfNeeded(String firstUserMessage) async {
-  if (_activeConversationId != null) return;
+static Future<String?> _initConversationIfNeeded(String firstUserMessage) async {
+  if (_activeConversationId != null) return _activeConversationId;
 
   final uid = _auth.currentUser?.uid;
   if (uid == null) {
     print('🚫 Cannot initialize conversation: user not signed in.');
-    return;
+    return null;
   }
 
   try {
@@ -42,47 +42,52 @@ static Future<void> _initConversationIfNeeded(String firstUserMessage) async {
 
     _activeConversationId = newDoc.id;
     print('📝 New conversation created: $_activeConversationId');
+    return _activeConversationId;
   } catch (e) {
     print('❌ Failed to create conversation: $e');
+    return null;
   }
 }
 
 
-  /// Save a message to Firestore under the active conversation
-  static Future<void> saveMessage(String sender, String text) async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) {
-      print('🚫 Cannot save message: user not signed in.');
-      return;
-    }
 
-    if (sender == "user") {
-      await _initConversationIfNeeded(text);
-    }
-
-    if (_activeConversationId == null) {
-      print('⚠️ No active conversation. Message not saved.');
-      return;
-    }
-
-    final message = {
-      'sender': sender,
-      'text': text,
-      'timestamp': FieldValue.serverTimestamp(),
-    };
-
-    try {
-      await _firestore
-          .collection('users')
-          .doc(uid)
-          .collection('conversations')
-          .doc(_activeConversationId)
-          .collection('messages')
-          .add(message);
-    } catch (e) {
-      print('❌ Failed to save message: $e');
-    }
+static Future<void> saveMessage(String sender, String text) async {
+  final uid = _auth.currentUser?.uid;
+  if (uid == null) {
+    print('🚫 Cannot save message: user not signed in.');
+    return;
   }
+
+  // Ensure conversation is initialized and ID is stored
+  if (sender == "user") {
+    _activeConversationId = await _initConversationIfNeeded(text);
+  }
+
+  if (_activeConversationId == null) {
+    print('⚠️ No active conversation. Message not saved.');
+    return;
+  }
+
+  final message = {
+    'sender': sender,
+    'text': text,
+    'timestamp': FieldValue.serverTimestamp(),
+  };
+
+  try {
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('conversations')
+        .doc(_activeConversationId)
+        .collection('messages')
+        .add(message);
+    print('💾 Message saved to $_activeConversationId');
+  } catch (e) {
+    print('❌ Failed to save message: $e');
+  }
+}
+
 
   /// Optional: to reset if user ends or starts a new conversation
 static void resetConversation() {
@@ -119,7 +124,7 @@ static Stream<QuerySnapshot> getMessageStream() {
 }
 
 
-static void setConversationId(String id) async {
+static  setConversationId(String id) async {
   _activeConversationId = id;
   activeConversationNotifier.value = id; // Notify listeners
   

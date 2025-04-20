@@ -45,8 +45,19 @@ class AuthService {
     }
   }
 
-  static Future<void> signOut() async {
+static Future<void> signOut() async {
+  try {
     await _auth.signOut();
+    await _googleSignIn.disconnect(); // Force account picker next time
     await _googleSignIn.signOut();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Clear stored user data
+
+    print('🔓 User fully signed out and data cleared');
+  } catch (e) {
+    print('Sign-out error: $e');
   }
+}
+
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_chatbot/auth_gate.dart';
 import 'package:flutter_chatbot/pages/menu/about_screen.dart';
+import 'package:flutter_chatbot/services/auth_service.dart';
 import '../../theme/colors.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -60,7 +61,7 @@ class SettingsScreen extends StatelessWidget {
                     child: TextButton(
                       onPressed: () async {
                         Navigator.of(context).pop();
-                        await FirebaseAuth.instance.signOut();
+                        await AuthService.signOut();
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const AuthGate()),
                           (route) => false,
@@ -103,9 +104,7 @@ class SettingsScreen extends StatelessWidget {
         children: [
           // Profile Section
           InkWell(
-            onTap: () {
-              
-            },
+            onTap: () {},
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),

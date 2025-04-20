@@ -135,7 +135,7 @@ class _ExpandableInputFieldState extends State<ExpandableInputField> {
                 keyboardType: TextInputType.multiline,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Type your message...',
+                  hintText: 'Type mo lang dito par...',
                   hintStyle: TextStyle(color: AppColors.lightAquaText),
                   filled: true,
                   fillColor: AppColors.deepPurple.withOpacity(0.3),

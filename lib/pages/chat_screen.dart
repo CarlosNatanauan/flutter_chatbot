@@ -20,10 +20,10 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-
   final ScrollController _scrollController = ScrollController();
   bool _isWaitingForResponse = false;
   bool _hasError = false;
+  final List<Map<String, dynamic>> _localMessages = [];
 
   @override
   void initState() {
@@ -33,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
     print('🔁 initState - current convoId: $convoId');
 
     if (convoId != null) {
-      ChatService.setConversationId(convoId); 
+      ChatService.setConversationId(convoId);
     }
   }
 
@@ -44,7 +44,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  // Scroll to the bottom of the chat
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -62,51 +61,75 @@ class _ChatScreenState extends State<ChatScreen> {
     if (input.isEmpty) return;
 
     final isFirstMessage = ChatService.activeConversationNotifier.value == null;
-    final conversationId = ChatService.activeConversationNotifier.value;
+    final previousConvoId = ChatService.activeConversationNotifier.value;
 
-    if (isFirstMessage) {
-      final words = input.split(' ');
-      final titleWords = words.length > 6 ? words.sublist(0, 6) : words;
-      final generatedTitle = titleWords.join(' ');
-      print('📝 Generated conversation title: $generatedTitle');
-    }
+    // Optimistically add user message
+    setState(() {
+      _isWaitingForResponse = true;
+      _localMessages.insert(0, {'sender': 'user', 'text': input});
+    });
 
-    // Clear the input field immediately
     _controller.clear();
+    _scrollToBottom();
 
-    // Save user message to Firestore first
+    // Save user message
     await ChatService.saveMessage("user", input);
 
-    // 🧠 Force-select the convo if it was just created
+    // Handle new conversation logic
     if (isFirstMessage) {
       final newId = ChatService.getCurrentConversationId();
-      if (newId != null) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        ChatService.setConversationId(newId);
+      if (newId != null && newId != previousConvoId) {
+        await ChatService.setConversationId(newId);
+
+        // 🛠 Wait for the first Firestore snapshot with at least one message
+        bool initialMessageSeen = false;
+        int retries = 0;
+
+        while (!initialMessageSeen && retries < 10) {
+          final snapshot = await ChatService.getMessageStream().first;
+          if (snapshot.docs.isNotEmpty) {
+            initialMessageSeen = true;
+          } else {
+            await Future.delayed(const Duration(milliseconds: 200));
+            retries++;
+          }
+        }
       }
     }
 
-    // Now we're waiting for AI response
-    setState(() {
-      _isWaitingForResponse = true;
-    });
+    final finalConvoId = ChatService.getCurrentConversationId() ?? 'temp-id';
 
-    // Scroll to show the latest message
-    _scrollToBottom();
+    // Get AI response and save it
+    final aiResponse = await GeminiService.getResponse(input, finalConvoId);
+    await ChatService.saveMessage("gemini", aiResponse);
 
-    // Get response from Gemini
-    final response =
-        await GeminiService.getResponse(input, conversationId ?? 'temp-id');
+    // Wait for Firestore to reflect the new AI message before updating UI
+    bool responseSaved = false;
+    int retries = 0;
 
-    // Save AI response to Firestore
-    await ChatService.saveMessage("gemini", response);
+    while (!responseSaved && retries < 10) {
+      final snapshot = await ChatService.getMessageStream().first;
+      final docs = snapshot.docs;
 
-    // No longer waiting for response
-    setState(() {
-      _isWaitingForResponse = false;
-    });
+      responseSaved = docs.any((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['text'] == aiResponse && data['sender'] == 'gemini';
+      });
 
-    // Scroll to show the AI response
+      if (!responseSaved) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        retries++;
+      }
+    }
+
+    // Update UI after message is confirmed in Firestore
+    if (mounted) {
+      setState(() {
+        _isWaitingForResponse = false;
+        _localMessages.clear();
+      });
+    }
+
     _scrollToBottom();
   }
 
@@ -156,83 +179,155 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildDot(int index) {
-    return SizedBox(
-      width: 8,
-      height: 8,
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        decoration: BoxDecoration(
-          color: _isWaitingForResponse
-              ? AppColors.darkNavy
-              : AppColors.gray.withOpacity(0.5),
-          shape: BoxShape.circle,
-        ),
-        margin: EdgeInsets.symmetric(horizontal: 4),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.darkNavy,
-      appBar: AppBar(
-        backgroundColor: AppColors.coolTeal,
-        automaticallyImplyLeading: false,
-        title: const Text('USAP AI'),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            final drawer = ZoomDrawer.of(context);
-            if (drawer != null) {
-              drawer.toggle();
-            }
-          },
+appBar: AppBar(
+  backgroundColor: AppColors.coolTeal,
+  elevation: 3,
+  automaticallyImplyLeading: false,
+  toolbarHeight: 70,
+  titleSpacing: 0,
+  title: Row(
+    children: [
+
+      const Text(
+        'USAP AI',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          letterSpacing: 1,
         ),
       ),
+            Image.asset(
+        'assets/images/logo/app_logo_v3_notext.png',
+        height: 35,
+        width: 35,
+      ),
+    ],
+  ),
+  leading: IconButton(
+    icon: const Icon(Icons.menu, color: Colors.white),
+    onPressed: () {
+      final drawer = ZoomDrawer.of(context);
+      if (drawer != null) {
+        drawer.toggle();
+      }
+    },
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.lightbulb_outline, color: Colors.white),
+      tooltip: 'Tips',
+      onPressed: () {
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    behavior: SnackBarBehavior.floating,
+    backgroundColor: AppColors.coolTeal.withOpacity(0.95),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    duration: const Duration(seconds: 3),
+    content: Row(
+      children: const [
+        Icon(Icons.lightbulb_outline, color: Colors.white, size: 20),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Tip: Tanong ka lang, walang mali sa curiosity!',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14.5,
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+);
+
+      },
+    ),
+  ],
+),
+
+
       body: Column(
         children: [
           Expanded(
             child: ValueListenableBuilder<String?>(
               valueListenable: ChatService.activeConversationNotifier,
               builder: (context, convoId, _) {
+                if (convoId == null) {
+return Center(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.gray.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text(
+            'Tahimik ka yata, par? 👀',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 10),
+          Text(
+            'Kung may gusto kang sabihin o itanong,\nusap lang tayo.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+
+
+                }
+
                 return StreamBuilder<QuerySnapshot>(
                   stream: ChatService.getMessageStream(),
                   builder: (context, snapshot) {
                     debugPrint("📡 StreamBuilder rebuild triggered");
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
                     final docs = snapshot.data?.docs ?? [];
-                    debugPrint("📄 Loaded ${docs.length} messages");
+                    final firestoreMessages = docs
+                        .map((doc) => doc.data() as Map<String, dynamic>)
+                        .toList();
 
-                    if (docs.isEmpty && !_isWaitingForResponse) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            SizedBox(height: 16),
-                            Text(
-                              'Anong kailangan mo par?',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 19,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+                    final allMessages = [
+                      ..._localMessages.where((localMsg) {
+                        return !firestoreMessages.any((fsMsg) =>
+                            fsMsg['text'] == localMsg['text'] &&
+                            fsMsg['sender'] == localMsg['sender']);
+                      }),
+                      ...firestoreMessages,
+                    ];
 
                     return ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.all(16),
                       reverse: true,
-                      itemCount: docs.length + (_isWaitingForResponse ? 1 : 0),
+                      itemCount:
+                          allMessages.length + (_isWaitingForResponse ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (_isWaitingForResponse && index == 0) {
                           return _buildTypingIndicator();
@@ -240,9 +335,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
                         final actualIndex =
                             _isWaitingForResponse ? index - 1 : index;
-                        final doc = docs[actualIndex];
-                        final data = doc.data() as Map<String, dynamic>;
-                        return _buildMessage(data['sender'], data['text']);
+                        final msg = allMessages[actualIndex];
+                        return _buildMessage(msg['sender'], msg['text']);
                       },
                     );
                   },
