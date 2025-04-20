@@ -1,16 +1,24 @@
-# flutter_chatbot
+🤖 USAP AI — Chatbot mo, tropa mo
 
-A new Flutter project.
+USAP AI is a Gemini-powered chatbot built with Flutter + Firebase, designed to talk like your friendly tropa. Built mostly for fun, learning, and late-night existential convos 🧠🌙
 
-## Getting Started
+⚡ What It Can Do
 
-This project is a starting point for a Flutter application.
+🔑 Google Sign-In (kasi hassle ang password)
+💬 Chat UI that feels like messaging a friend
+🧠 Powered by Gemini via Firebase Vertex AI (so yes, it’s smart)
+☁️ Firestore for chat storage (your convo stays safe)
+🗃 Keeps memory per convo (kaya niya maalala 'yung tanong mo kanina)
+🇵🇭 Tagalog-friendly UI (parang ka-chat mo lang si AI na marunong mag-Tagalog)
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🛠 Tech Stack
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+| 🧩 Tech Used            | 💡 What It's For                                               |
+|-------------------------|----------------------------------------------------------------|
+| **Flutter**             | Where the whole UI magic happens — fast, smooth, cross-platform. |
+| **Firebase Auth**       | Handles Google Sign-In like a boss. No passwords, just vibes.    |
+| **Firestore**           | Stores all your convos in real-time. Like memory, but digital.   |
+| **Vertex AI + Gemini**  | The AI brain behind the chatbot. Powered by Google's Gemini model. |
+| **SharedPreferences**   | Stores user info locally so you don’t log in every time.         |
+
