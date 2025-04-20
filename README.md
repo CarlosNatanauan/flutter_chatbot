@@ -22,3 +22,33 @@ USAP AI is a Gemini-powered chatbot built with Flutter + Firebase, designed to t
 | **Vertex AI + Gemini**  | The AI brain behind the chatbot. Powered by Google's Gemini model. |
 | **SharedPreferences**   | Stores user info locally so you don’t log in every time.         |
 
+
+## 🎬 Demo Video
+
+<p align="center">
+  Watch the app in action:
+</p>
+
+<p align="center">
+  <a href="https://youtube.com/shorts/jPFLv-kru58" target="_blank">
+    <img src="https://img.youtube.com/vi/jPFLv-kru58/hqdefault.jpg" alt="Watch the demo" width="600"/>
+  </a>
+</p>
+
+
+## 📸 Screenshots
+
+Here’s a glimpse of **USAP AI** in action. From onboarding to real-time chat, and everything in between:
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/17d8921e-4172-47b3-b8c4-81ba49ca11e8" alt="Screenshot 1" width="800"/>
+</p>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/41ba77e9-f1e0-424b-ad9f-02832746976a" alt="Screenshot 2" width="800"/>
+</p>
+
+
+🙌 Thanks for Dropping By
+
+USAP AI was built with curiosity, caffeine, and a love for tech 🤖☕
+If you found this fun or useful, feel free to share, fork, or drop a ⭐ on the repo!
