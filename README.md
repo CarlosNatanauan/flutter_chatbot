@@ -43,8 +43,8 @@
 </p>
 
 <p align="center">
-  <a href="https://youtube.com/shorts/jPFLv-kru58" target="_blank">
-    <img src="https://img.youtube.com/vi/jPFLv-kru58/hqdefault.jpg" alt="Watch the demo" width="600"/>
+  <a href="https://youtu.be/VwWbTemfQR4" target="_blank">
+    <img src="https://img.youtube.com/vi/VwWbTemfQR4/hqdefault.jpg" alt="Watch the demo" width="600"/>
   </a>
 </p>
 
