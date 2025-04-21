@@ -9,7 +9,7 @@
   Chatbot na kaya kang kausapin, kahit hindi ka kilala.
 </i></p>
 
-<p align="center">a
+<p align="center">
   Built with <b>Flutter</b>, <b>Firebase</b>, and <b>Gemini</b> — <br/>
   USAP AI is your casual, Tagalog-friendly chatbot para sa mga tanong, kwento, o trip mo lang makipag-usap.
 </p>
