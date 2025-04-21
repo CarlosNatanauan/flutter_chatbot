@@ -1,6 +1,19 @@
-🤖 USAP AI — Chatbot mo, tropa mo
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/87c205da-adcd-4b74-9167-fac2569b8c8c" alt="USAP AI Logo" height="280"/>
+</p>
 
-USAP AI is a Gemini-powered chatbot built with Flutter + Firebase, designed to talk like your friendly tropa. Built mostly for fun, learning, and late-night existential convos 🧠🌙
+<h1 align="center">🤖 USAP AI — Usapan na may konting utak</h1>
+
+<p align="center"><i>
+  Hindi siya tao, pero marunong makiramdam (minsan).<br/>
+  Chatbot na kaya kang kausapin, kahit hindi ka kilala.
+</i></p>
+
+<p align="center">a
+  Built with <b>Flutter</b>, <b>Firebase</b>, and <b>Gemini</b> — <br/>
+  USAP AI is your casual, Tagalog-friendly chatbot para sa mga tanong, kwento, o trip mo lang makipag-usap.
+</p>
+
 
 ⚡ What It Can Do
 
